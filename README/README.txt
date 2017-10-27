@@ -20,29 +20,31 @@
 
 Installation instructions :
 
-1) Ask Jelena (jelena __ telenius __ at __ gmail __ com) to send you the tar.gz file including the codes.
-
-2) Unpack with this command :
+1) If you downloaded from GitHub - jump to step (2) below
+   
+   If you asked  Jelena (jelena __ telenius __ at __ gmail __ com) to send you the tar.gz file including the codes :
+   
+   Unpack with this command :
     tar --preserve-permissions -xzf CCseqBasic4.tar.gz
 
-3) Fill in the locations (or modules) of the needed tools (bowtie, fastqc etc), and the genome builds, to the config files :
+2) Fill in the locations (or modules) of the needed tools (bowtie, fastqc etc), and the genome builds, to the config files :
     nano CCseqBasic4/conf/loadNeededTools.sh        # Instructions as comment lines in the  loadNeededTools.sh file
     nano CCseqBasic4/conf/genomeBuildSetup.sh       # Instructions as comment lines in the genomeBuildSetup.sh file
 
-4) Fill in your server address to the conf/serverAddressAndPublicDiskSetup.sh file
+3) Fill in your server address to the conf/serverAddressAndPublicDiskSetup.sh file
     nano CCseqBasic4/conf/serverAddressAndPublicDiskSetup.sh       # Instructions as comment lines in the file
 
-5) Add the main script NGseqBasic.sh to your path or BASH profile (optional), f.ex :
+4) Add the main script NGseqBasic.sh to your path or BASH profile (optional), f.ex :
     export PATH:${PATH}:/where/you/unpacked/it/CCseqBasic4/CCseqBasic4.sh
 
-6) Start using the pipe ! (no installation needed)
+5) Start using the pipe ! (no installation needed)
 
-7) Good place to start is the pipeline's help :
+6) Good place to start is the pipeline's help :
     CCseqBasic4.sh --help
 
-8) Below web site provides a test data set, hands-on tutorials, full manual, and other documentation !
+7) Below web site provides a test data set, hands-on tutorials, full manual, and other documentation !
    http://userweb.molbiol.ox.ac.uk/public/telenius/CCseqBasicManual/
    
-9) Direct link to the test data set :
+8) Direct link to the test data set :
    http://userweb.molbiol.ox.ac.uk/public/telenius/captureManual/testdata/exampledata.html
    
