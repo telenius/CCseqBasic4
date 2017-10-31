@@ -335,9 +335,15 @@ UCSC=()
 genomesWhichHaveBlacklist=()
 BLACKLIST=()
 
-. ${confFolder}/config.sh
+# . ${confFolder}/config.sh
+. ${confFolder}/genomeBuildSetup.sh
+. ${confFolder}/loadNeededTools.sh
+. ${confFolder}/serverAddressAndPublicDiskSetup.sh
 
-setConfigLocations
+# setConfigLocations
+setPathsForPipe
+setGenomeLocations
+setPublicLocations
 
 echo 
 echo "Supported genomes : "
