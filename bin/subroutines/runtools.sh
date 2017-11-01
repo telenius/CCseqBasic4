@@ -99,6 +99,8 @@ echo "--globin Combines the two captures from the gene duplicates (HbA1 and HbA2
 echo "--flashed	1 or 0 (are the reads in input sam combined via flash or not ? - run out.extended with 1 and out.not_combined with 0)"
 echo "--duplfilter 1 or 0 (will the reads be duplicate filtered)\n"
 echo "--parp Filter artificial chromosome chrPARP out before visualisation"
+echo "--umi (Filter based on UMI indices : ask Damien Downes how to prepare your files for pipeline, if you are interested in doing this)"
+
 
 runDir=$( pwd )
 

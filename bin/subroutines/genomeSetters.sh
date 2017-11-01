@@ -23,8 +23,6 @@ setBOWTIEgenomeSizes(){
     
 BowtieGenome="UNDETERMINED"
 
-
-
 #-----------Genome-sizes-for-bowtie-commands----------------------------------------------
 
 if [ "${BOWTIE}" -eq 1 ]
@@ -59,7 +57,6 @@ fi
 done  
 
 fi  
-
 
 #------------------------------------------------
 

@@ -143,6 +143,7 @@ my $stringent = 0;
 my $flashed = 1;
 my $duplfilter = 1;
 my $use_parp = 0; # whether this is parp run or not (parp artificial chromosome to be filtered before visualisation files)
+my $use_umi = 0; # whether this is UMI run or not, if yes, filter based on UMI indices : ask Damien Downes how to prepare your files for pipeline, if you are interested in doing this
 
 # Code excecution start values :
 my $analysis_read;
@@ -165,7 +166,7 @@ my %dpn_data; # contains the list of DpnII fragments in the genome
 my %data; # contains the parsed data from the sam file
 my %samhash; # contains the output data for a sam file
 my %fraghash; # contains the output data for each fragment, which is used to generate a wig and a mig file
-my %coords_hash=(); # contains a list of all the coordinates of the mapped reads to exclude duplicates
+my %coords_hash=(); # contains a list of all the coordinates of the mapped reads to exclude duplicates (if UMI-run, includes the UMI)
 my %counters;  # contains the data for all the counters in the script, which is outputted into the report file
 my %finalcounters;  # contains the data for all the counters in the script, which is outputted into the report file
 my %finalrepcounters;  # contains the data for all the counters in the script, which is outputted into the report file
@@ -193,6 +194,7 @@ my $notlastFragments=0;
         "dump"=>\ $use_dump,				# -dump		Print file of unaligned reads (sam format)
 	"snp"=>\ $use_snp,				# -snp		Force all capture points to contain a particular SNP
 	"parp"=>\ $use_parp,				# -parp		Run contains artificial chromosome PARP, which is to be removed before visualisation
+	"umi"=>\ $use_umi,				# -umi		Run contains UMI indices - alter the duplicate filter accordingly : ask Damien Downes how to prepare your files for pipeline, if you are interested in doing this
 	"limit=i"=>\ $use_limit,			# -limit		Limit the analysis to the first n reads of the file
 	"genome=s"=>\ $genome,				# -genome	Specify the genome (mm9 / hg18)
 	"ucscsizes=s"=>\ $ucscsizes,			# -ucscsizes    Genome sizes file ( if not taken from the default location with the fancy naming scheme )
@@ -247,6 +249,8 @@ print STDOUT "use_limit $use_limit\n";
 print STDOUT "genome $genome\n";
 print STDOUT "globin $globin \n"; 
 print STDOUT "stringent $stringent \n";
+print STDOUT "use_umi $use_umi \n";
+
 
 my $parameter_filename = "parameters_for_filtering.log";
 unless (open(PARAMETERLOG, ">$parameter_filename")){die "Cannot open file $parameter_filename $! , stopped "};
@@ -484,7 +488,7 @@ my $samDataLineCounter=0;
 # to deal with the fragments of the last read.
 {
 
-my $saveLine; my $saveReadname;
+my $saveLine; my $saveReadname; my $saveUmi;
   
 while (my $line = <INFH>)  #loops through all the lines of the sam file
 {
@@ -529,8 +533,40 @@ while (my $line = <INFH>)  #loops through all the lines of the sam file
     
     $name =~ /(.*):PE(\d++):(\d++):(\d++)$/; 
     my $readname=$1; my $pe = $2; my $readno= $3; my $islastfrag= $4;
+    
+    my $UMI="";
+    if ($use_umi){
+    # UMI support :
+    
+    # Inputing "Damien Downes" UMI format :
+    # M01913:214:000000000-BGF65:1:1101:10004CTTTGCTTAT:18787:PE1:0:2
+    # Where the original illumina read identifier was :
+    # M01913:214:000000000-BGF65:1:1101:10004:18787 index:CTTTGCTTAT
+    # Where CTTTGCTTAT is the UMI id.
+    # The :PE1:0:2 is added in RE cut perl scripts just as in non-umi reads
+    
+    # Now read name looks like this :
+    # M01913:214:000000000-BGF65:1:1101:10004CTTTGCTTAT:18787
+    
+    $readname =~ /(.*):(\d++)([[:upper:]]++):(.*)$/;;
+    
+    # Taking out the UMI ..
+    $UMI=$3;
+    # Reconstructing the read name ..
+    $readname = $1.":".$2.":".$4    
+    
+    # $readname =~ /^([\w-]++):(\d++):([\w-]++):(\d++):(\d++):(\d++)([[:upper:]]++):(\d++)$/;
+    # Taking out the UMI ..
+    # $UMI=$7;
+    # Reconstructing the read name ..
+    # $readname = $1.":".$2.":".$3.":".$4.":".$5.":".$6.":".$8
+    
+    }
+    
     # Saving this for the last read - being handled outside the while loop
     $saveReadname=$readname;
+    # This just for printing out just after exiting the loop (not used in the analysis)
+    $saveUmi=$UMI;
     
 
     #-----------------------------------------------------------------------------------------
@@ -575,7 +611,12 @@ while (my $line = <INFH>)  #loops through all the lines of the sam file
 	    #	and the order of the reads changes depending on which strand the reads come from.
             
 	    # Assigns the entire line of the sam file to the hash
-	    $data{$readname}{$pe}{$readno}{"whole line"}= $line;       
+	    $data{$readname}{$pe}{$readno}{"whole line"}= $line;
+	    
+	    if ($use_umi){
+	    # Putting the umi into the hash
+	    $data{$readname}{"umi"} = $UMI;
+	    }
 	    
 	    # Parses the chromosome from the $chr - nb without the chr in front
             $chr =~ /chr(.*)/; $chr = $1;
@@ -876,6 +917,9 @@ unless ($use_limit ==0){if ($counters{"02 Aligning sequences:"}) { if ($counters
 #All other variables are inside hashes - and thus already available to the subroutines
 $analysis_read = $saveReadname;
 print STDOUT "Last read analysis. Enter analysis round. Analysis read name : ".$analysis_read."\n";
+if ($use_umi){
+print STDOUT "UMI name : ".$saveUmi."\n";
+}
 &readAnalysisLoop($saveLine);
 
 # Closing the empty block - making inside-while variables invisible again : my $saveLine; my $saveChr; my $saveReadstart; my $saveReadname; 
@@ -1289,6 +1333,13 @@ sub readAnalysisLoop
       $data{$analysis_read}{"coord string"}= join( "_", sort {$a cmp $b} @{$data{$analysis_read}{"coord array"}}); #this line sorts the array in the hash and converts it into a string with the sequences in ascending order
       
       #$data{$analysis_read}{"coord string"}= join( "_", @{$data{$analysis_read}{"coord array"}}); #we don't want to sort, as ligation order is important to us
+
+      # Adding in the UMI if we are umi run ..
+      if ($use_umi){
+	# Putting the umi into the hash
+	$data{$analysis_read}{"coord string"}=$data{$analysis_read}{"coord string"}."_".$data{$analysis_read}{"umi"};
+      }
+      
       
       #-----------------------------------------------------------------------------------------
       # Making the "reverse coordinate string"

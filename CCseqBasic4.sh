@@ -282,7 +282,7 @@ echo
 
 #------------------------------------------
 
-OPTS=`getopt -o h,m:,M:,o:,s:,w:,i:,v: --long help,dump,snp,dpn,nla,BLATforREUSEfolderPath:,globin:,outfile:,errfile:,limit:,pf:,genome:,R1:,R2:,saveGenomeDigest,dontSaveGenomeDigest,trim,noTrim,chunkmb:,bowtie1,bowtie2,window:,increment:,ada3read1:,ada3read2:,extend:,onlyCCanalyser,onlyHub,noPloidyFilter:,qmin:,flashBases:,flashMismatch:,stringent,trim3:,trim5:,seedmms:,seedlen:,maqerr:,stepSize:,tileSize:,minScore:,maxIntron:,oneOff: -- "$@"`
+OPTS=`getopt -o h,m:,M:,o:,s:,w:,i:,v: --long help,dump,snp,UMI,dpn,nla,BLATforREUSEfolderPath:,globin:,outfile:,errfile:,limit:,pf:,genome:,R1:,R2:,saveGenomeDigest,dontSaveGenomeDigest,trim,noTrim,chunkmb:,bowtie1,bowtie2,window:,increment:,ada3read1:,ada3read2:,extend:,onlyCCanalyser,onlyHub,noPloidyFilter:,qmin:,flashBases:,flashMismatch:,stringent,trim3:,trim5:,seedmms:,seedlen:,maqerr:,stepSize:,tileSize:,minScore:,maxIntron:,oneOff: -- "$@"`
 if [ $? != 0 ]
 then
     exit 1
@@ -301,6 +301,7 @@ while true ; do
         -s) Sample=$2 ; shift 2;;
         -v) LOWERCASE_V="$2"; shift 2;;
         --help) usage ; shift;;
+        --UMI) otherParameters="$otherParameters --umi" ; shift;;
         --dpn) REenzyme="dpnII" ; shift;;
         --nla) REenzyme="nlaIII" ; shift;;
         --onlyCCanalyser) ONLY_CC_ANALYSER=1 ; shift;;
@@ -580,8 +581,8 @@ printToLogFile
     
     bowtieQuals=""
     LineCount=$(($( grep -c "" READ1.fastq )/4))
-    if [ "${LineCount}" -gt 100000 ] ; then
-        bowtieQuals=$( perl ${RunScriptsPath}/fastq_scores_bowtie${BOWTIE}.pl -i READ1.fastq -r 90000 )
+    if [ "${LineCount}" -gt 100000 ] ; then    
+        bowtieQuals=$( perl ${RunScriptsPath}/fastq_scores_bowtie${BOWTIE}.pl -i READ1.fastq -r 90000 )    
     else
         rounds=$((${LineCount}-10))
         bowtieQuals=$( perl ${RunScriptsPath}/fastq_scores_bowtie${BOWTIE}.pl -i READ1.fastq -r ${rounds} )
@@ -627,7 +628,7 @@ printToLogFile
 printThis="${RunScriptsPath}/QC_and_Trimming.sh -q ${intQuals} --filter 3 --qmin ${QMIN}"
 printToLogFile
 
-${RunScriptsPath}/QC_and_Trimming.sh -q "${intQuals}" --filter 3 
+${RunScriptsPath}/QC_and_Trimming.sh -q "${intQuals}" --filter 3 --qmin ${QMIN}
 
 doQuotaTesting
 ls -lht
