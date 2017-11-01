@@ -748,8 +748,8 @@ echo "Beginning bowtie run (outputting run command after completion) .."
 setMparameter
 
 if [ "${BOWTIE}" -eq 2 ] ; then
-bowtie2 -p 1 ${otherBowtie2Parameters} ${bowtieQuals} --maxins ${MAXINS} -x ${bowtieGenomeBuild} FLASHED_REdig.fastq > FLASHED_REdig.sam
-echo "bowtie2 -p 1 ${otherBowtie2Parameters} ${bowtieQuals} --maxins ${MAXINS} -x ${bowtieGenomeBuild} FLASHED_REdig.fastq"
+bowtie2 -p 1 ${otherBowtie2Parameters} ${bowtieQuals} -x ${BowtieGenome} -U FLASHED_REdig.fastq > FLASHED_REdig.sam
+echo "bowtie2 -p 1 ${otherBowtie2Parameters} ${bowtieQuals} -x ${BowtieGenome} -U FLASHED_REdig.fastq"
 else
 bowtie -p 1 --chunkmb "${BOWTIEMEMORY}" ${otherBowtie1Parameters} ${bowtieQuals} ${mParameter} --best --strata --sam "${BowtieGenome}" FLASHED_REdig.fastq > FLASHED_REdig.sam
 fi
@@ -772,8 +772,8 @@ echo "Beginning bowtie run (outputting run command after completion) .."
 setMparameter
 
 if [ "${BOWTIE}" -eq 2 ] ; then
-bowtie2 -p 1 ${otherBowtie2Parameters} ${bowtieQuals} --maxins ${MAXINS} -x ${bowtieGenomeBuild} NONFLASHED_REdig.fastq > NONFLASHED_REdig.sam
-echo "bowtie2 -p 1 ${otherBowtie2Parameters} ${bowtieQuals} --maxins ${MAXINS} -x ${bowtieGenomeBuild} NONFLASHED_REdig.fastq"
+bowtie2 -p 1 ${otherBowtie2Parameters} ${bowtieQuals} -x ${BowtieGenome} -U NONFLASHED_REdig.fastq > NONFLASHED_REdig.sam
+echo "bowtie2 -p 1 ${otherBowtie2Parameters} ${bowtieQuals} -x ${BowtieGenome} -U NONFLASHED_REdig.fastq"
 else
 bowtie -p 1 --chunkmb "${BOWTIEMEMORY}" ${otherBowtie1Parameters} ${bowtieQuals} ${mParameter} --best --strata --sam "${BowtieGenome}" NONFLASHED_REdig.fastq > NONFLASHED_REdig.sam
 fi
