@@ -33,10 +33,21 @@ setPathsForPipe(){
 # This can be done EITHER via module system, or via EXPORTING them to the path.
 # If exporting to the path - the script does not check already existing conflicting programs (which may contain executable with same names as these)
 
-# Change this to "0" if you want to use direct paths.
+# If neither useModuleSystem or setPathsHere : the script assumes all toolkits are already in path !
+
+# If you are using module system
 useModuleSystem=1
 # useModuleSystem=1 : load via module system
-# useModuleSystem=0 : load via direct paths
+# useModuleSystem=0 : don't use module system
+
+# If you are adding to path (using the script below)
+setPathsHere=0
+# setPathsHere=1 : set tools to path using the bottom of this script
+# setPathsHere=0 : dset tools to path using the bottom of this script
+
+# If neither useModuleSystem or setPathsHere : the script assumes all toolkits are already in path !
+
+# #############################################################################
 
 
 # PATHS_LOADED_VIA_MODULES
@@ -87,10 +98,15 @@ module load python/2.7.5
 
 module list
 
+# #############################################################################
 
-# EXPORT_PATHS_WITHOUT_MODULE_SYSTEM
+# EXPORT_PATHS_IN_THIS_SCRIPT
 
-else
+elif [ "${setPathsHere}" -eq 1 ]; then
+
+echo
+echo "Adding tools to PATH .."
+echo
     
 # Note !!!!!
 # - the script does not check already existing conflicting programs within $PATH (which may contain executable with same names as these)
@@ -112,6 +128,16 @@ export PATH=$PATH:/package/python/2.7.5/bin/python
 # See notes of SUPPORTED VERSIONS above !
 
 echo $PATH
+
+# #############################################################################
+
+# EXPORT_NOTHING_i.e._ASSUMING_USER_HAS_TOOLS_LOADED_VIA_OTHER_MEANS
+
+else
+    
+echo
+echo "Tools should already be available in PATH - not loading anything .."
+echo
 
 fi
 
