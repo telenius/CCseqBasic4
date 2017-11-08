@@ -266,7 +266,6 @@ genomesWhichHaveBlacklist=()
 # setConfigLocations
 setPathsForPipe
 setGenomeLocations
-setPublicLocations
 
 echo 
 echo "Supported genomes : "
@@ -278,7 +277,30 @@ echo
 echo "Blacklist filtering available for these genomes : "
 for g in $( seq 0 $((${#genomesWhichHaveBlacklist[@]}-1)) ); do echo -n "${genomesWhichHaveBlacklist[$g]} "; done
 echo 
-echo 
+echo
+
+
+echo "Calling in the conf/serverAddressAndPublicDiskSetup.sh script and its default setup .."
+
+SERVERTYPE="UNDEFINED"
+SERVERADDRESS="UNDEFINED"
+REMOVEfromPUBLICFILEPATH="NOTHING"
+ADDtoPUBLICFILEPATH="NOTHING"
+tobeREPLACEDinPUBLICFILEPATH="NOTHING"
+REPLACEwithThisInPUBLICFILEPATH="NOTHING"
+
+. ${confFolder}/serverAddressAndPublicDiskSetup.sh
+
+setPublicLocations
+
+echo
+echo "SERVERTYPE ${SERVERTYPE}"
+echo "SERVERADDRESS ${SERVERADDRESS}"
+echo "ADDtoPUBLICFILEPATH ${ADDtoPUBLICFILEPATH}"
+echo "REMOVEfromPUBLICFILEPATH ${REMOVEfromPUBLICFILEPATH}"
+echo "tobeREPLACEDinPUBLICFILEPATH ${tobeREPLACEDinPUBLICFILEPATH}"
+echo "REPLACEwithThisInPUBLICFILEPATH ${REPLACEwithThisInPUBLICFILEPATH}"
+echo
 
 #------------------------------------------
 
@@ -347,6 +369,24 @@ while true ; do
         --) shift; break;;
     esac
 done
+
+
+# ----------------------------------------------
+
+echo "Parsing the data area and server locations .."
+
+PublicPath="${PublicPath}/${Sample}/${CCversion}_${REenzyme}"
+
+# Here, parsing the data area location, to reach the public are address..
+diskFolder=${PublicPath}
+serverFolder=""   
+echo
+parsePublicLocations
+echo
+
+tempJamesUrl="${SERVERADDRESS}/${serverFolder}"
+JamesUrl=$( echo ${tempJamesUrl} | sed 's/\/\//\//g' )
+ServerAndPath="${SERVERTYPE}://${JamesUrl}"
 
 # ----------------------------------------------
 
@@ -461,18 +501,12 @@ echo "------------------------------" >> parameters_capc.log
 echo "WINDOW ${WINDOW}" >> parameters_capc.log
 echo "INCREMENT ${INCREMENT}" >> parameters_capc.log
 echo "------------------------------" >> parameters_capc.log
-
-PublicPath="${PublicPath}/${Sample}/${CCversion}_${REenzyme}"
 echo "PublicPath ${PublicPath}" >> parameters_capc.log
-ServerUrl="sara.molbiol.ox.ac.uk"
-tempJamesUrl="${ServerUrl}/${PublicPath}"
-JamesUrl=$( echo ${tempJamesUrl} | sed 's/\/\//\//g' )
-ServerAndPath="http://${JamesUrl}"
-echo "ServerUrl ${ServerUrl}" >> parameters_capc.log
+echo "ServerUrl ${SERVERADDRESS}" >> parameters_capc.log
 echo "JamesUrl ${JamesUrl}" >> parameters_capc.log
 echo "ServerAndPath ${ServerAndPath}" >> parameters_capc.log
 echo "otherParameters ${otherParameters}" >> parameters_capc.log
-echo
+echo "------------------------------" >> parameters_capc.log
 echo "GenomeFasta ${GenomeFasta}" >> parameters_capc.log
 echo "BowtieGenome ${BowtieGenome}" >> parameters_capc.log
 echo "ucscBuild ${ucscBuild}" >> parameters_capc.log
