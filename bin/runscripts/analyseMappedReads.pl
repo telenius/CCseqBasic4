@@ -102,7 +102,8 @@ use Pod::Usage;
  -globin	Combines the two captures from the gene duplicates (HbA1 and HbA2)
  -flashed	1 or 0 (are the reads in input sam combined via flash or not ? - run out.extended with 1 and out.not_combined with 0)
  -duplfilter	1 or 0 (will the reads be duplicate diltered or not ? )
-
+ -ucscsizes     Genome sizes file 
+ -stringent 	enforces additional stringency - forces all reported subfragments to be unique
 
 =head1 AUTHOR
 
