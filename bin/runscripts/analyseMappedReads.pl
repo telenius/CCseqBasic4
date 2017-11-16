@@ -143,7 +143,6 @@ my $stringent = 0;
 my $flashed = 1;
 my $duplfilter = 1;
 my $use_parp = 0; # whether this is parp run or not (parp artificial chromosome to be filtered before visualisation files)
-my $use_umi = 0; # whether this is UMI run or not, if yes, filter based on UMI indices : ask Damien Downes how to prepare your files for pipeline, if you are interested in doing this
 
 # Code excecution start values :
 my $analysis_read;
@@ -166,7 +165,7 @@ my %dpn_data; # contains the list of DpnII fragments in the genome
 my %data; # contains the parsed data from the sam file
 my %samhash; # contains the output data for a sam file
 my %fraghash; # contains the output data for each fragment, which is used to generate a wig and a mig file
-my %coords_hash=(); # contains a list of all the coordinates of the mapped reads to exclude duplicates (if UMI-run, includes the UMI)
+my %coords_hash=(); # contains a list of all the coordinates of the mapped reads to exclude duplicates
 my %counters;  # contains the data for all the counters in the script, which is outputted into the report file
 my %finalcounters;  # contains the data for all the counters in the script, which is outputted into the report file
 my %finalrepcounters;  # contains the data for all the counters in the script, which is outputted into the report file
@@ -194,7 +193,6 @@ my $notlastFragments=0;
         "dump"=>\ $use_dump,				# -dump		Print file of unaligned reads (sam format)
 	"snp"=>\ $use_snp,				# -snp		Force all capture points to contain a particular SNP
 	"parp"=>\ $use_parp,				# -parp		Run contains artificial chromosome PARP, which is to be removed before visualisation
-	"umi"=>\ $use_umi,				# -umi		Run contains UMI indices - alter the duplicate filter accordingly : ask Damien Downes how to prepare your files for pipeline, if you are interested in doing this
 	"limit=i"=>\ $use_limit,			# -limit		Limit the analysis to the first n reads of the file
 	"genome=s"=>\ $genome,				# -genome	Specify the genome (mm9 / hg18)
 	"ucscsizes=s"=>\ $ucscsizes,			# -ucscsizes    Genome sizes file ( if not taken from the default location with the fancy naming scheme )
@@ -249,8 +247,6 @@ print STDOUT "use_limit $use_limit\n";
 print STDOUT "genome $genome\n";
 print STDOUT "globin $globin \n"; 
 print STDOUT "stringent $stringent \n";
-print STDOUT "use_umi $use_umi \n";
-
 
 my $parameter_filename = "parameters_for_filtering.log";
 unless (open(PARAMETERLOG, ">$parameter_filename")){die "Cannot open file $parameter_filename $! , stopped "};
@@ -488,7 +484,7 @@ my $samDataLineCounter=0;
 # to deal with the fragments of the last read.
 {
 
-my $saveLine; my $saveReadname; my $saveUmi;
+my $saveLine; my $saveReadname;
   
 while (my $line = <INFH>)  #loops through all the lines of the sam file
 {
@@ -533,40 +529,8 @@ while (my $line = <INFH>)  #loops through all the lines of the sam file
     
     $name =~ /(.*):PE(\d++):(\d++):(\d++)$/; 
     my $readname=$1; my $pe = $2; my $readno= $3; my $islastfrag= $4;
-    
-    my $UMI="";
-    if ($use_umi){
-    # UMI support :
-    
-    # Inputing "Damien Downes" UMI format :
-    # M01913:214:000000000-BGF65:1:1101:10004CTTTGCTTAT:18787:PE1:0:2
-    # Where the original illumina read identifier was :
-    # M01913:214:000000000-BGF65:1:1101:10004:18787 index:CTTTGCTTAT
-    # Where CTTTGCTTAT is the UMI id.
-    # The :PE1:0:2 is added in RE cut perl scripts just as in non-umi reads
-    
-    # Now read name looks like this :
-    # M01913:214:000000000-BGF65:1:1101:10004CTTTGCTTAT:18787
-    
-    $readname =~ /(.*):(\d++)([[:upper:]]++):(.*)$/;;
-    
-    # Taking out the UMI ..
-    $UMI=$3;
-    # Reconstructing the read name ..
-    $readname = $1.":".$2.":".$4    
-    
-    # $readname =~ /^([\w-]++):(\d++):([\w-]++):(\d++):(\d++):(\d++)([[:upper:]]++):(\d++)$/;
-    # Taking out the UMI ..
-    # $UMI=$7;
-    # Reconstructing the read name ..
-    # $readname = $1.":".$2.":".$3.":".$4.":".$5.":".$6.":".$8
-    
-    }
-    
     # Saving this for the last read - being handled outside the while loop
     $saveReadname=$readname;
-    # This just for printing out just after exiting the loop (not used in the analysis)
-    $saveUmi=$UMI;
     
 
     #-----------------------------------------------------------------------------------------
@@ -579,13 +543,12 @@ while (my $line = <INFH>)  #loops through all the lines of the sam file
       if ($use_dump eq 1){print DUMPOUTPUT $line."\n"} #"$name\n$sequence\n+\n$qscore\n"};
     }
     
-    # Now as bowtie2 is supported, this can be commented out ..
-    # elsif ( $cigar =~/\d++\w++\d++/ )
-    # {
-    #   $counters{"06e Fragments with CIGAR strings failing to parse (containing introns or indels) :"}++;
-    #   #push @{$data{$readname}{"coord array"}}, "cigarfail";
-    #   if ($use_dump eq 1){print DUMPOUTPUT $line."\n"} #"$name\n$sequence\n+\n$qscore\n"};     
-    # }
+    elsif ( $cigar =~/\d++\w++\d++/ )
+    {
+      $counters{"06e Fragments with CIGAR strings failing to parse (containing introns or indels) :"}++;
+      #push @{$data{$readname}{"coord array"}}, "cigarfail";
+      if ($use_dump eq 1){print DUMPOUTPUT $line."\n"} #"$name\n$sequence\n+\n$qscore\n"};     
+    }
     
     #-----------------------------------------------------------------------------------------
     
@@ -611,12 +574,7 @@ while (my $line = <INFH>)  #loops through all the lines of the sam file
 	    #	and the order of the reads changes depending on which strand the reads come from.
             
 	    # Assigns the entire line of the sam file to the hash
-	    $data{$readname}{$pe}{$readno}{"whole line"}= $line;
-	    
-	    if ($use_umi){
-	    # Putting the umi into the hash
-	    $data{$readname}{"umi"} = $UMI;
-	    }
+	    $data{$readname}{$pe}{$readno}{"whole line"}= $line;       
 	    
 	    # Parses the chromosome from the $chr - nb without the chr in front
             $chr =~ /chr(.*)/; $chr = $1;
@@ -628,139 +586,13 @@ while (my $line = <INFH>)  #loops through all the lines of the sam file
 	    if ($bitwise & 0x0010) { $data{$readname}{$pe}{$readno}{"strand"} = "minus";}
 	    else { $data{$readname}{$pe}{$readno}{"strand"} = "plus";}
 	    
-	    # Here setting the sequence, and the start and end of the coordinates (for duplicate filtering)
+	    #This adds the start of the sequence and the end of the read to the hash
+            $cigar =~/(\d++)(.*)/;
 	    
             $data{$readname}{$pe}{$readno}{"seqlength"} = $1;
-	    # This is not used for anything.
             $data{$readname}{$pe}{$readno}{"readstart"} = $readstart;
-	    
-	    # Setting the read end - old way (without bowtie2 support)
-            # $data{$readname}{$pe}{$readno}{"readend"} = $readstart+length($sequence)-1; #minus1 due to 1 based sam file input.
-	    
-	    # Setting the read end - with bowtie2 support (full cigar parsing)
-	    
-	    # Here adding bowtie2 support :
-	    # https://samtools.github.io/hts-specs/SAMv1.pdf
-	    # Op 	BAM Description 			ConsumesQuery ConsumesReference
-	    # 
-	    # M 0 	alignment match (or mismatch) 		yes 		yes
-	    # I 1 	insertion to the reference 		yes 		no
-	    # D 2 	deletion from the reference 		no 		yes
-	    # N 3 	skipped region from the reference 	no 		yes
-	    # S 4 	soft clipping (present in SEQ) 		yes 		no
-	    # H 5 	hard clipping (NOT present in SEQ) 	no 		no
-	    # P 6 	padding (silent deletion) 		no 		no
-	    # = 7 	sequence match 				yes 		yes
-	    # X 8 	sequence mismatch 			yes 		yes
-	    # 
-	    # all possible : [MIDNSHP=X]
-	    # 
-	    # Op 	BAM Description 			ConsumesQuery ConsumesReference
-	    # 
-	    # M 0 	alignment match (or mismatch) 		yes 		yes
-	    # D 2 	deletion from the reference 		no 		yes
-	    # N 3 	skipped region from the reference 	no 		yes
-	    # = 7 	sequence match 				yes 		yes
-	    # X 8 	sequence mismatch 			yes 		yes
-	    # 
-	    # counting towards reference end point : [MDN=X]
-	    
-	    # This adds the start of the sequence and the end of the read to the hash
-	    
-	    # Setting to zero before the cigar parse.
-	    $data{$readname}{$pe}{$readno}{"readend"}=$data{$readname}{$pe}{$readno}{"readstart"}-1; #minus1 due to 1 based sam file input.
-	    # Empty block for temp cigar
-	    {
-	    my $TEMPcigar=$cigar;
-	    while ($TEMPcigar =~ /(\d++)([MIDNSHP=X])(.*)/) 
-	    {
-	      my $number=$1;
-	      my $ident=$2;
-	      
-	      $TEMPcigar=$3;
-	      
-	      if ($ident =~ /^([MDN=X])$/)
-		{
-		  $data{$readname}{$pe}{$readno}{"readend"}+=$number;
-		}
-	    }
-	    }
-	    
-	    
-	    # Setting the sequence : this is only used in the snpcaller subroutine (so "ordinary runs" do not use this)
-	    
-	    # Old way of doing this (before bowtie2 support)
-	    # $data{$readname}{$pe}{$readno}{"sequence"} = $sequence;
-	    
-	    # Here adding bowtie2 support (full cigar parsing)
-	    # Op 	BAM Description 			ConsumesQuery ConsumesReference
-	    # 
-	    # These count normally
-	    # M 0 	alignment match (or mismatch) 		yes 		yes
-	    # = 7 	sequence match 				yes 		yes
-	    # X 8 	sequence mismatch 			yes 		yes
-	    # 
-	    # These are "skipped" - moving in seq coordinates, not printing anything 
-	    # I 1 	insertion to the reference 		yes 		no
-	    # S 4 	soft clipping (present in SEQ) 		yes 		no
-	    # 
-	    # These are "added" - not moving in seq coordinates, printing x-characters
-	    # D 2 	deletion from the reference 		no 		yes
-	    # N 3 	skipped region from the reference 	no 		yes
-	    # 
-	    # Ignoring these
-	    # H 5 	hard clipping (NOT present in SEQ) 	no 		no
-	    # P 6 	padding (silent deletion) 		no 		no
-	    
-	    # Initialising the sequence as empty string ..
-	    $data{$readname}{$pe}{$readno}{"sequence"}="";
-	    # Empty block for temp cigar and temp sequence
-	   {
-	   my $TEMPsequence=$sequence;
-	   my $TEMPcigar=$cigar;
-	   
-	   while ($TEMPcigar =~ /(\d++)([MIDNSHP=X])(.*)/)
-	   {
-	       my $addThis="";
-	       
-	       my $number=$1;
-	       my $ident=$2;
-	       $TEMPcigar=$3;
-		
-	       # These count normally
-	       if ($ident =~ /^([M=X])$/)
-	       {
-	         $addThis=substr($TEMPsequence,0,$number);
-	         $TEMPsequence=substr($TEMPsequence,$number);
-	       }
-		
-	       # These are "skipped" - moving in seq coordinates, not printing anything 
-	       if ($ident =~ /^([IS])$/)
-	       {
-	         $addThis="";
-	         $TEMPsequence=substr($TEMPsequence,$number);
-	       }
-		
-	       # These are "added" - not moving in seq coordinates, printing x-characters
-	       if ($ident =~ /^([DN])$/)
-	       {
-	         $addThis="";
-	         for (my$i=0; $i< $number; $i++)
-	         {
-		   $addThis=$addThis."x";
-		 }
-		
-	       }
-		
-	       # Ignoring these (silent in both reference and sequence)
-	       # [HP]
-		
-	       # In the end actually adding ..
-	       $data{$readname}{$pe}{$readno}{"sequence"}=$data{$readname}{$pe}{$readno}{"sequence"}.$addThis;
-	      
-	   }
-	   }
-	    
+            $data{$readname}{$pe}{$readno}{"readend"} = $readstart+length($sequence)-1; #minus1 due to 1 based sam file input.
+	    $data{$readname}{$pe}{$readno}{"sequence"} = $sequence;
 	    
 	    #Generates a string of the coordinates of all the split paired end reads to allow duplicates to be excluded
 	    $data{$readname}{"number of reads"}++;
@@ -917,9 +749,6 @@ unless ($use_limit ==0){if ($counters{"02 Aligning sequences:"}) { if ($counters
 #All other variables are inside hashes - and thus already available to the subroutines
 $analysis_read = $saveReadname;
 print STDOUT "Last read analysis. Enter analysis round. Analysis read name : ".$analysis_read."\n";
-if ($use_umi){
-print STDOUT "UMI name : ".$saveUmi."\n";
-}
 &readAnalysisLoop($saveLine);
 
 # Closing the empty block - making inside-while variables invisible again : my $saveLine; my $saveChr; my $saveReadstart; my $saveReadname; 
@@ -1333,13 +1162,6 @@ sub readAnalysisLoop
       $data{$analysis_read}{"coord string"}= join( "_", sort {$a cmp $b} @{$data{$analysis_read}{"coord array"}}); #this line sorts the array in the hash and converts it into a string with the sequences in ascending order
       
       #$data{$analysis_read}{"coord string"}= join( "_", @{$data{$analysis_read}{"coord array"}}); #we don't want to sort, as ligation order is important to us
-
-      # Adding in the UMI if we are umi run ..
-      if ($use_umi){
-	# Putting the umi into the hash
-	$data{$analysis_read}{"coord string"}=$data{$analysis_read}{"coord string"}."_".$data{$analysis_read}{"umi"};
-      }
-      
       
       #-----------------------------------------------------------------------------------------
       # Making the "reverse coordinate string"

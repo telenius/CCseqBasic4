@@ -23,11 +23,7 @@ setBOWTIEgenomeSizes(){
     
 BowtieGenome="UNDETERMINED"
 
-#-----------Genome-sizes-for-bowtie-commands----------------------------------------------
-
-if [ "${BOWTIE}" -eq 1 ]
-then
-    
+#-----------Genome-sizes-for-bowtie-commands----------------------------------------------  
     
 for g in $( seq 0 $((${#supportedGenomes[@]}-1)) ); do
     
@@ -38,25 +34,6 @@ if [ "${supportedGenomes[$g]}" == "${GENOME}" ]; then
 fi
 
 done  
-
-fi
-
-#------------------------------------------------
-
-if [ "${BOWTIE}" -eq 2 ]
-then
-    
-for g in $( seq 0 $((${#supportedGenomes[@]}-1)) ); do
-    
-# echo ${supportedGenomes[$g]}
-
-if [ "${supportedGenomes[$g]}" == "${GENOME}" ]; then
-    BowtieGenome="${BOWTIE2[$g]}"
-fi
-
-done  
-
-fi  
 
 #------------------------------------------------
 

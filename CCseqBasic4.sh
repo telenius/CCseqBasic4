@@ -104,9 +104,6 @@ ADA32="no"
 # trimgalore default
 QMIN=20
 
-# bowtie default
-BOWTIE=1
-
 # flash defaults
 flashOverlap=10
 flashErrorTolerance=0.25
@@ -114,10 +111,8 @@ flashErrorTolerance=0.25
 saveDpnGenome=0
 
 ucscBuild=""
-otherBowtie1Parameters=""
-otherBowtie2Parameters=""
-bowtie1MismatchBehavior=""
-bowtie2MismatchBehavior=""
+otherBowtieParameters=""
+bowtieMismatchBehavior=""
 
 otherParameters=""
 PublicPath="UNDETERMINED"
@@ -146,7 +141,7 @@ ONLY_HUB=0
 
 #------------------------------------------
 
-CCversion="CB4"
+CCversion="CB4a"
 captureScript="analyseMappedReads"
 CCseqBasicVersion="CCseqBasic4"
 
@@ -252,7 +247,6 @@ echo "Calling in the conf/config.sh script and its default setup .."
 CaptureDigestPath="NOT_IN_USE"
 supportedGenomes=()
 BOWTIE1=()
-BOWTIE2=()
 UCSC=()
 BLACKLIST=()
 genomesWhichHaveBlacklist=()
@@ -279,7 +273,6 @@ for g in $( seq 0 $((${#genomesWhichHaveBlacklist[@]}-1)) ); do echo -n "${genom
 echo 
 echo
 
-
 echo "Calling in the conf/serverAddressAndPublicDiskSetup.sh script and its default setup .."
 
 SERVERTYPE="UNDEFINED"
@@ -304,7 +297,7 @@ echo
 
 #------------------------------------------
 
-OPTS=`getopt -o h,m:,M:,o:,s:,w:,i:,v: --long help,dump,snp,UMI,dpn,nla,BLATforREUSEfolderPath:,globin:,outfile:,errfile:,limit:,pf:,genome:,R1:,R2:,saveGenomeDigest,dontSaveGenomeDigest,trim,noTrim,chunkmb:,bowtie1,bowtie2,window:,increment:,ada3read1:,ada3read2:,extend:,onlyCCanalyser,onlyHub,noPloidyFilter:,qmin:,flashBases:,flashMismatch:,stringent,trim3:,trim5:,seedmms:,seedlen:,maqerr:,stepSize:,tileSize:,minScore:,maxIntron:,oneOff: -- "$@"`
+OPTS=`getopt -o h,m:,M:,o:,s:,w:,i:,v: --long help,dump,snp,dpn,nla,BLATforREUSEfolderPath:,globin:,outfile:,errfile:,limit:,pf:,genome:,R1:,R2:,saveGenomeDigest,dontSaveGenomeDigest,trim,noTrim,chunkmb:,window:,increment:,ada3read1:,ada3read2:,extend:,onlyCCanalyser,onlyHub,noPloidyFilter:,qmin:,flashBases:,flashMismatch:,stringent,trim3:,trim5:,seedmms:,seedlen:,maqerr:,stepSize:,tileSize:,minScore:,maxIntron:,oneOff: -- "$@"`
 if [ $? != 0 ]
 then
     exit 1
@@ -323,15 +316,12 @@ while true ; do
         -s) Sample=$2 ; shift 2;;
         -v) LOWERCASE_V="$2"; shift 2;;
         --help) usage ; shift;;
-        --UMI) otherParameters="$otherParameters --umi" ; shift;;
         --dpn) REenzyme="dpnII" ; shift;;
         --nla) REenzyme="nlaIII" ; shift;;
         --onlyCCanalyser) ONLY_CC_ANALYSER=1 ; shift;;
         --onlyHub) ONLY_HUB=1 ; shift;;
         --R1) Read1=$2 ; shift 2;;
         --R2) Read2=$2 ; shift 2;;
-        --bowtie1) BOWTIE=1 ; shift;;
-        --bowtie2) BOWTIE=2 ; shift;;
         --chunkmb) BOWTIEMEMORY=$2 ; shift 2;;
         --saveGenomeDigest) saveDpnGenome=1 ; shift;;
         --dontSaveGenomeDigest) saveDpnGenome=0 ; shift;;
@@ -356,9 +346,9 @@ while true ; do
         --flashMismatch) flashErrorTolerance="$2" ; shift 2;;
         --trim3) otherBowtieParameters="${otherBowtieParameters} --trim3 $2 " ; shift 2;;
         --trim5) otherBowtieParameters="${otherBowtieParameters} --trim5 $2 " ; shift 2;;
-        --seedmms) bowtie1MismatchBehavior="${bowtie1MismatchBehavior} --seedmms $2 " ; ${bowtie2MismatchBehavior}="${bowtie2MismatchBehavior} -N $2 "  ; shift 2;;
-        --seedlen) bowtie1MismatchBehavior="${bowtie1MismatchBehavior} --seedlen $2 " ; ${bowtie2MismatchBehavior}="${bowtie2MismatchBehavior} -L $2 " ; shift 2;;
-        --maqerr) bowtie1MismatchBehavior="${bowtie1MismatchBehavior} --maqerr $2 " ; shift 2;;
+        --seedmms) bowtieMismatchBehavior="${bowtieMismatchBehavior} --seedmms $2 " ; shift 2;;
+        --seedlen) bowtieMismatchBehavior="${bowtieMismatchBehavior} --seedlen $2 " ; shift 2;;
+        --maqerr) bowtieMismatchBehavior="${bowtieMismatchBehavior} --maqerr $2 " ; shift 2;;
         --stepSize) stepSize=$2 ; shift 2;;
         --tileSize) tileSize==$2 ; shift 2;;
         --minScore) minScore=$2 ; shift 2;;
@@ -369,7 +359,6 @@ while true ; do
         --) shift; break;;
     esac
 done
-
 
 # ----------------------------------------------
 
@@ -615,18 +604,18 @@ printToLogFile
     
     bowtieQuals=""
     LineCount=$(($( grep -c "" READ1.fastq )/4))
-    if [ "${LineCount}" -gt 100000 ] ; then    
-        bowtieQuals=$( perl ${RunScriptsPath}/fastq_scores_bowtie${BOWTIE}.pl -i READ1.fastq -r 90000 )    
+    if [ "${LineCount}" -gt 100000 ] ; then
+        bowtieQuals=$( perl ${RunScriptsPath}/fastq_scores_bowtie1.pl -i READ1.fastq -r 90000 )
     else
         rounds=$((${LineCount}-10))
-        bowtieQuals=$( perl ${RunScriptsPath}/fastq_scores_bowtie${BOWTIE}.pl -i READ1.fastq -r ${rounds} )
+        bowtieQuals=$( perl ${RunScriptsPath}/fastq_scores_bowtie1.pl -i READ1.fastq -r ${rounds} )
     fi
     
     echo "Flash, Trim_galore and Bowtie will be ran in quality score scheme : ${bowtieQuals}"
 
     # The location of "zero" for the filtering/trimming programs cutadapt, trim_galore, flash    
     intQuals=""
-    if [ "${bowtieQuals}" == "--phred33-quals" ] || [ "${bowtieQuals}" == "--phred33" ]; then
+    if [ "${bowtieQuals}" == "--phred33-quals" ] ; then
         intQuals="33"
     else
         # Both solexa and illumina phred64 have their "zero point" in 64
@@ -781,14 +770,7 @@ printToLogFile
 
 echo "Beginning bowtie run (outputting run command after completion) .."
 setMparameter
-
-if [ "${BOWTIE}" -eq 2 ] ; then
-bowtie2 -p 1 ${otherBowtie2Parameters} ${bowtieQuals} -x ${BowtieGenome} -U FLASHED_REdig.fastq > FLASHED_REdig.sam
-echo "bowtie2 -p 1 ${otherBowtie2Parameters} ${bowtieQuals} -x ${BowtieGenome} -U FLASHED_REdig.fastq"
-else
-bowtie -p 1 --chunkmb "${BOWTIEMEMORY}" ${otherBowtie1Parameters} ${bowtieQuals} ${mParameter} --best --strata --sam "${BowtieGenome}" FLASHED_REdig.fastq > FLASHED_REdig.sam
-fi
-
+bowtie -p 1 --chunkmb "${BOWTIEMEMORY}" ${otherBowtieParameters} ${bowtieQuals} ${mParameter} --best --strata --sam "${BowtieGenome}" FLASHED_REdig.fastq > FLASHED_REdig.sam
 #bowtie -p 1 -m 2 --best --strata --sam --chunkmb 256 ${bowtieQuals} "${BowtieGenome}" Combined_reads_REdig.fastq Combined_reads_REdig.sam
 
 testedFile="FLASHED_REdig.sam"
@@ -805,14 +787,7 @@ printToLogFile
 
 echo "Beginning bowtie run (outputting run command after completion) .."
 setMparameter
-
-if [ "${BOWTIE}" -eq 2 ] ; then
-bowtie2 -p 1 ${otherBowtie2Parameters} ${bowtieQuals} -x ${BowtieGenome} -U NONFLASHED_REdig.fastq > NONFLASHED_REdig.sam
-echo "bowtie2 -p 1 ${otherBowtie2Parameters} ${bowtieQuals} -x ${BowtieGenome} -U NONFLASHED_REdig.fastq"
-else
-bowtie -p 1 --chunkmb "${BOWTIEMEMORY}" ${otherBowtie1Parameters} ${bowtieQuals} ${mParameter} --best --strata --sam "${BowtieGenome}" NONFLASHED_REdig.fastq > NONFLASHED_REdig.sam
-fi
-
+bowtie -p 1 --chunkmb "${BOWTIEMEMORY}" ${otherBowtieParameters} ${bowtieQuals} ${mParameter} --best --strata --sam "${BowtieGenome}" NONFLASHED_REdig.fastq > NONFLASHED_REdig.sam
 #bowtie -p 1 -m 2 --best --strata --sam --chunkmb 256 ${bowtieQuals} "${BowtieGenome}" Combined_reads_REdig.fastq Combined_reads_REdig.sam
 
 testedFile="NONFLASHED_REdig.sam"

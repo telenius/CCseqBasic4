@@ -49,7 +49,6 @@ setPathsHere=0
 
 # #############################################################################
 
-
 # PATHS_LOADED_VIA_MODULES
 
 if [ "${useModuleSystem}" -eq 1 ]; then
@@ -62,8 +61,6 @@ module load samtools/1.1
 
 module load bowtie/1.1.2
 # Supports all bowtie1 versions 1.* and 0.*
-module load bowtie2/2.1.0
-# Supports all bowtie2 versions
 
 module load bedtools/2.17.0
 # Supports bedtools versions 2.1* . Does not support bedtools versions 2.2*
