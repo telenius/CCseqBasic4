@@ -115,7 +115,7 @@ use Pod::Usage;
 
 # Hardcoded parameters :
 my $email = 'jelena.telenius@gmail.com';
-my $version = "CB4a";
+my $version = "CB4";
 
 # Obligatory parameters :
 my $oligo_filename = "UNDEFINED";

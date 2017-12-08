@@ -141,7 +141,7 @@ ONLY_HUB=0
 
 #------------------------------------------
 
-CCversion="CB4a"
+CCversion="CB4"
 captureScript="analyseMappedReads"
 CCseqBasicVersion="CCseqBasic4"
 
