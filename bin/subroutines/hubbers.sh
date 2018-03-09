@@ -154,7 +154,8 @@ doRegularTrack(){
         echo "TRACK DESCRIPTION NOT CREATED - track ${trackName} does not have size in ${publicPathForCCanalyser}/${fileName}" >> "/dev/stderr"
     fi
     else
-        echo "TRACK DESCRIPTION NOT CREATED - track ${trackName} already exists in ${publicPathForCCanalyser}/${sampleForCCanalyser}_${CCversion}_tracks.txt" >> "/dev/stderr"
+        echo
+        # echo "TRACK DESCRIPTION NOT CREATED - track ${trackName} already exists in ${publicPathForCCanalyser}/${sampleForCCanalyser}_${CCversion}_tracks.txt" >> "/dev/stderr"
     fi
     
 }
